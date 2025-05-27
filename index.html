@@ -29,7 +29,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            background-color: #fff; /* T³o mapy przed za³adowaniem */
+            background-color: #fff; /* TÂ³o mapy przed zaÂ³adowaniem */
         }
         .controls-container {
             margin-bottom: 20px;
@@ -76,7 +76,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap; /* Zapewnij zawijanie siê tekstu na mniejszych ekranach */
+            flex-wrap: wrap; /* Zapewnij zawijanie siÃª tekstu na mniejszych ekranach */
         }
         #gpxFoldersList li:last-child {
             border-bottom: none;
@@ -91,7 +91,7 @@
             font-size: 0.8em;
             transition: background-color 0.3s ease;
             margin-left: 5px; /* Dodany margines dla przycisku */
-            flex-shrink: 0; /* Zapobiegaj zmniejszaniu siê przycisku */
+            flex-shrink: 0; /* Zapobiegaj zmniejszaniu siÃª przycisku */
         }
         #gpxFoldersList .folder-button:hover {
             background-color: #0056b3;
@@ -111,7 +111,7 @@
             background-color: #218838;
         }
         .folder-info {
-            flex-grow: 1; /* Pozwól informacjom o folderze zaj¹æ dostêpn¹ przestrzeñ */
+            flex-grow: 1; /* PozwÃ³l informacjom o folderze zajÂ¹Ã¦ dostÃªpnÂ¹ przestrzeÃ± */
         }
         .folder-stats {
             font-size: 0.8em;
@@ -121,16 +121,16 @@
     </style>
 </head>
 <body>
-    <h1>Wizualizacja Tras GPX z Zewnêtrznych URL</h1>
+    <h1>Wizualizacja Tras GPX z ZewnÃªtrznych URL</h1>
 
     <div class="controls-container">
-        <div id="message" class="message-area">Wczytywanie statystyk tras zdefiniowanych poni¿ej...</div>
+        <div id="message" class="message-area">Wczytywanie statystyk tras zdefiniowanych poniÂ¿ej...</div>
     </div>
 
     <div class="folder-list-container">
-        <h2>Dostêpne grupy tras GPX (zdefiniowane URL):</h2>
+        <h2>DostÃªpne grupy tras GPX (zdefiniowane URL):</h2>
         <div id="gpxFoldersList">
-            <p>Trasy GPX zostan¹ za³adowane z predefiniowanych adresów URL.</p>
+            <p>Trasy GPX zostanÂ¹ zaÂ³adowane z predefiniowanych adresÃ³w URL.</p>
         </div>
         <button id="loadAllButton" style="display:none;">Wczytaj wszystkie trasy</button>
     </div>
@@ -165,7 +165,7 @@
             ],
             //"Trasy 2024": [
             //    "https://raw.githubusercontent.com/tkrajina/gpxpy/master/gpxpy/gpxpy_test_files/test_gpx_with_truncated_time.gpx",
-            //    // "Dodaj tutaj wiêcej linków do plików GPX z tego katalogu"
+            //    // "Dodaj tutaj wiÃªcej linkÃ³w do plikÃ³w GPX z tego katalogu"
             //]
             // "Inny Katalog": [
             //     "https://twoja_domena.com/gpx/inna_trasa1.gpx",
@@ -175,7 +175,7 @@
         // ===================================
 
 
-        // Funkcja do dynamicznego generowania losowych kolorów dla tras
+        // Funkcja do dynamicznego generowania losowych kolorÃ³w dla tras
         function getRandomColor() {
             var letters = '0123456789ABCDEF';
             var color = '#';
@@ -276,14 +276,14 @@
 
             const filesToLoad = allFoundGpxFiles[folderPath];
             if (!filesToLoad || filesToLoad.length === 0) {
-                messageArea.innerText = `Brak plików GPX w grupie "${folderPath}".`;
+                messageArea.innerText = `Brak plikÃ³w GPX w grupie "${folderPath}".`;
                 return;
             }
 
             const trackColor = folderColors[folderPath] || getRandomColor();
             folderColors[folderPath] = trackColor;
 
-            messageArea.innerText = `£adowanie tras z grupy "${folderPath}"...`;
+            messageArea.innerText = `Â£adowanie tras z grupy "${folderPath}"...`;
             let filesLoadedCount = 0;
             const bounds = new L.LatLngBounds();
             const loadingPromises = [];
@@ -321,14 +321,14 @@
                             filesLoadedCount++;
                         })
                         .on('error', function(e) {
-                            console.error(`B³¹d podczas ³adowania pliku GPX z URL (${fileInfo.url}):`, e);
-                            messageArea.innerText = `B³¹d podczas ³adowania pliku z URL ${fileInfo.url.split('/').pop()}. SprawdŸ konsolê.`;
+                            console.error(`BÂ³Â¹d podczas Â³adowania pliku GPX z URL (${fileInfo.url}):`, e);
+                            messageArea.innerText = `BÂ³Â¹d podczas Â³adowania pliku z URL ${fileInfo.url.split('/').pop()}. SprawdÂŸ konsolÃª.`;
                         })
                         .addTo(mymap);
                     })
                     .catch(e => {
-                        console.error(`B³¹d pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
-                        messageArea.innerText = `B³¹d pobierania pliku z URL ${fileInfo.url.split('/').pop()}. SprawdŸ konsolê. (SprawdŸ CORS!)`;
+                        console.error(`BÂ³Â¹d pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
+                        messageArea.innerText = `BÂ³Â¹d pobierania pliku z URL ${fileInfo.url.split('/').pop()}. SprawdÂŸ konsolÃª. (SprawdÂŸ CORS!)`;
                     })
                     .finally(() => {
                         // Resolve the promise even on error so Promise.all can complete
@@ -349,9 +349,9 @@
                 const totalDist = (folderAggregates[folderPath].totalDistance / 1000).toFixed(2);
                 const totalDur = formatDuration(folderAggregates[folderPath].totalDuration);
                 const totalEleGain = folderAggregates[folderPath].totalElevationGain.toFixed(0);
-                messageArea.innerText = `Wczytano ${filesLoadedCount} tras z grupy "${folderPath}". D³ugoœæ: ${totalDist} km, Czas: ${totalDur}, Przewy¿szenie: ${totalEleGain} m.`;
+                messageArea.innerText = `Wczytano ${filesLoadedCount} tras z grupy "${folderPath}". DÂ³ugoÂœÃ¦: ${totalDist} km, Czas: ${totalDur}, PrzewyÂ¿szenie: ${totalEleGain} m.`;
             } else {
-                messageArea.innerText = `Nie wczytano ¿adnych tras z grupy "${folderPath}". SprawdŸ adresy URL i ustawienia CORS.`;
+                messageArea.innerText = `Nie wczytano Â¿adnych tras z grupy "${folderPath}". SprawdÂŸ adresy URL i ustawienia CORS.`;
             }
         }
 
@@ -368,11 +368,11 @@
             }
 
             if (allFilesToLoad.length === 0) {
-                messageArea.innerText = "Brak plików GPX do wczytania.";
+                messageArea.innerText = "Brak plikÃ³w GPX do wczytania.";
                 return;
             }
 
-            messageArea.innerText = `£adowanie wszystkich tras (${allFilesToLoad.length} plików)...`;
+            messageArea.innerText = `Â£adowanie wszystkich tras (${allFilesToLoad.length} plikÃ³w)...`;
             let filesLoadedSuccessfullyCount = 0;
             const bounds = new L.LatLngBounds();
             const loadingPromises = [];
@@ -421,13 +421,13 @@
                             filesLoadedSuccessfullyCount++;
                         })
                         .on('error', function(e) {
-                            console.error(`B³¹d podczas ³adowania pliku GPX z URL (${fileInfo.url}):`, e);
+                            console.error(`BÂ³Â¹d podczas Â³adowania pliku GPX z URL (${fileInfo.url}):`, e);
                             // Error already handled by fetch.catch, this is for leaflet-gpx plugin errors.
                         })
                         .addTo(mymap);
                     })
                     .catch(e => {
-                        console.error(`B³¹d pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
+                        console.error(`BÂ³Â¹d pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
                     });
                 loadingPromises.push(loadPromise);
             }
@@ -446,9 +446,9 @@
                     totalDurationAll += folderAggregates[folderName].totalDuration;
                     totalElevationGainAll += folderAggregates[folderName].totalElevationGain;
                 }
-                messageArea.innerText = `Wczytano wszystkie ${filesLoadedSuccessfullyCount} tras. Sumaryczna d³ugoœæ: ${(totalDistanceAll / 1000).toFixed(2)} km, Sumaryczny czas: ${formatDuration(totalDurationAll)}, Sumaryczne przewy¿szenie: ${totalElevationGainAll.toFixed(0)} m.`;
+                messageArea.innerText = `Wczytano wszystkie ${filesLoadedSuccessfullyCount} tras. Sumaryczna dÂ³ugoÂœÃ¦: ${(totalDistanceAll / 1000).toFixed(2)} km, Sumaryczny czas: ${formatDuration(totalDurationAll)}, Sumaryczne przewyÂ¿szenie: ${totalElevationGainAll.toFixed(0)} m.`;
             } else {
-                messageArea.innerText = `Nie wczytano ¿adnych tras. SprawdŸ adresy URL i ustawienia CORS.`;
+                messageArea.innerText = `Nie wczytano Â¿adnych tras. SprawdÂŸ adresy URL i ustawienia CORS.`;
             }
         }
 
@@ -458,8 +458,8 @@
             allFoundGpxFiles = {};
             folderColors = {};
             folderAggregates = {};
-            gpxFoldersList.innerHTML = '<p>Skanowanie zdefiniowanych Ÿróde³...</p>';
-            messageArea.innerText = 'Wczytywanie statystyk tras zdefiniowanych poni¿ej...';
+            gpxFoldersList.innerHTML = '<p>Skanowanie zdefiniowanych ÂŸrÃ³deÂ³...</p>';
+            messageArea.innerText = 'Wczytywanie statystyk tras zdefiniowanych poniÂ¿ej...';
             loadAllButton.style.display = 'none';
 
             let gpxFoundInTotal = 0;
@@ -495,7 +495,7 @@
                             folderAggregates[folderName].totalElevationGain += stats.elevationGain;
                         })
                         .catch(err => {
-                            console.warn(`B³¹d w tle podczas parsowania URL ${url}:`, err);
+                            console.warn(`BÂ³Â¹d w tle podczas parsowania URL ${url}:`, err);
                             // Do not add to total if error, or add a specific error status
                             fileInfo.distance = 0; // Mark as failed to parse
                             fileInfo.duration = 0;
@@ -524,8 +524,8 @@
                         <li>
                             <span style="color:${displayColor}; font-weight:bold;">&#9632;</span>
                             <span class="folder-info">
-                                ${folderName} (${fileCount} plików GPX)
-                                <div class="folder-stats">D³ugoœæ: ${totalDist} km, Czas: ${totalDur}, Przewy¿szenie: ${totalEleGain} m</div>
+                                ${folderName} (${fileCount} plikÃ³w GPX)
+                                <div class="folder-stats">DÂ³ugoÂœÃ¦: ${totalDist} km, Czas: ${totalDur}, PrzewyÂ¿szenie: ${totalEleGain} m</div>
                             </span>
                             <button class="folder-button" onclick="loadGpxFilesFromFolder('${escapedFolderName}')">Wczytaj</button>
                         </li>
@@ -533,11 +533,11 @@
                 });
                 folderListHtml += '</ul>';
                 gpxFoldersList.innerHTML = folderListHtml;
-                messageArea.innerText = `Znaleziono ${gpxFoundInTotal} plików GPX w ${folderNames.length} grupach. Wybierz grupê do wczytania lub wczytaj wszystkie.`;
+                messageArea.innerText = `Znaleziono ${gpxFoundInTotal} plikÃ³w GPX w ${folderNames.length} grupach. Wybierz grupÃª do wczytania lub wczytaj wszystkie.`;
                 loadAllButton.style.display = 'block';
             } else {
-                gpxFoldersList.innerHTML = '<p>Nie znaleziono plików GPX w zdefiniowanych Ÿród³ach URL.</p>';
-                messageArea.innerText = 'Nie znaleziono plików GPX w zdefiniowanych Ÿród³ach URL.';
+                gpxFoldersList.innerHTML = '<p>Nie znaleziono plikÃ³w GPX w zdefiniowanych ÂŸrÃ³dÂ³ach URL.</p>';
+                messageArea.innerText = 'Nie znaleziono plikÃ³w GPX w zdefiniowanych ÂŸrÃ³dÂ³ach URL.';
                 loadAllButton.style.display = 'none';
             }
         }
@@ -551,4 +551,4 @@
 </body>
 </html>
 ```
-Pamiêtaj, aby zmodyfikowaæ obiekt `remoteGpxSources` w sekcji `<script>` o swoje w³asne adresy URL do plików GPX. U¿y³em tutaj przyk³adów z publicznie dostêpnych plików GPX z GitHub, abyœ móg³ od razu zobaczyæ dzia³an
+PamiÃªtaj, aby zmodyfikowaÃ¦ obiekt `remoteGpxSources` w sekcji `<script>` o swoje wÂ³asne adresy URL do plikÃ³w GPX. UÂ¿yÂ³em tutaj przykÂ³adÃ³w z publicznie dostÃªpnych plikÃ³w GPX z GitHub, abyÂœ mÃ³gÂ³ od razu zobaczyÃ¦ dziaÂ³an
