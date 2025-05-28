@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Czyszczenie danych GPX (jeden plik) FINAL</title>
+    <title>Czyszczenie danych GPX</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
@@ -101,7 +101,7 @@
     </style>
 </head>
 <body>
-    <h1>Czyszczenie danych GPX (jeden plik) FINAL</h1>
+    <h1>Czyszczenie danych GPX</h1>
 
     <div class="container">
         <label for="gpxFileInput">Wybierz plik GPX do wczytania:</label>
@@ -110,7 +110,7 @@
         <div id="message" class="message-area"></div>
     </div>
 
-    <div class="info-panel">
+    <div class="info-panel" style="display: none;">
         <h3>Informacje o punkcie wykluczenia:</h3>
         <p><strong>Lokalizacja:</strong> 50.092194, 19.935667 (Kraków)</p>
         <p><strong>Promień wykluczenia:</strong> 2000 metrów (2 km)</p>
@@ -314,9 +314,10 @@
             gpxLayer = new L.GPX(cleanedGpxData, {
                 async: true,
                 marker_options: {
-                    startIconUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-icon-start.png',
-                    endIconUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-icon-end.png',
-                    shadowUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-shadow.png',
+                    startIconUrl: false, // Nie wyświetlaj ikony startu
+                    endIconUrl: false,   // Nie wyświetlaj ikony końca
+                    shadowUrl: false,
+                    wptIcons: {},
                 },
                 polyline_options: {
                     color: 'blue',
