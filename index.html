@@ -160,11 +160,11 @@
         // Remember about CORS if files are on a different domain!
         const remoteGpxSources = {
             "Testy": [
-            "https://github.com/BemolCN/MojeTrasy/raw/refs/heads/main/pliki_GPX/Testy/Krakow%20-%20Suwa%C5%82ki.gpx",
+            "https://raw.githubusercontent.com/BemolCN/MojeTrasy/main/pliki_GPX/Testy/Krakow%20-%20Suwa%C5%82ki.gpx",
             //     "https://twoja_domena.com/gpx/inna_trasa2.gpx"
-            ],
+            ],            
             "Trasy 2025": [
-            "https://github.com/BemolCN/MojeTrasy/raw/refs/heads/main/pliki_GPX/2025/2025-05-25_pierwszatrasa.gpx",
+            "https://raw.githubusercontent.com/BemolCN/MojeTrasy/main/pliki_GPX/2025/2025-05-25_pierwszatrasa.gpx",
                 //https://drive.google.com/uc?export=download&id=FILE_ID gdzie FILE_ID to rzeczywistym identyfikatorem Twojego pliku
             ]
             //"Trasy 2024": [
@@ -407,7 +407,7 @@
                                 wptIcons: {},
                             },
                             polyline_options: {
-                                color: trackColor,
+                                color: trackColor, // Użyj koloru przypisanego do katalogu
                                 opacity: 0.75,
                                 weight: 5,
                                 lineCap: 'round'
@@ -551,6 +551,5 @@
     </script>
 </body>
 </html>
-
-<!-- Pamiętaj, aby zmodyfikować obiekt `remoteGpxSources` w sekcji `<script>` o swoje własne adresy URL do plików GPX. 
-// Użyłem tutaj przykładów z publicznie dostępnych plików GPX z GitHub, abyś mógł od razu zobaczyć działan -->
+```
+I made some changes. Zaktualizowałem adresy URL w obiekcie `remoteGpxSources`, aby używały standardowego formatu `https://raw.githubusercontent.com/TwojaNazwaUzytkownika/NazwaRepozytorium/main/sciezka/do/pliku.gpx` (bez `refs/heads/
