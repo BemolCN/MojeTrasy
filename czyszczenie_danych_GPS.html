@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.5.0/mammoth.browser.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
 
@@ -143,21 +142,94 @@
         let gpxLayer = null;
         let originalFileName = "cleaned_track.gpx";
 
-        document.getElementById('gpxFileInput').addEventListener('change', function(event) {
+        // Deklaracje elementów DOM przeniesione na początek skryptu
+        const messageArea = document.getElementById('message');
+        const gpxFileInput = document.getElementById('gpxFileInput');
+        const processGpxButton = document.getElementById('processGpxButton');
+
+        gpxFileInput.addEventListener('change', function(event) {
+            console.log("File input change event triggered.");
             const file = event.target.files[0];
             if (file) {
                 originalFileName = file.name.replace(/\.gpx$/i, '') + '_cleaned.gpx'; // Suggest new name
-                document.getElementById('message').textContent = `Plik "${file.name}" załadowany. Gotowy do czyszczenia.`;
-                // Clear previous layer if any
-                if (gpxLayer) {
+                messageArea.textContent = `Plik "${file.name}" załadowany. Gotowy do czyszczenia.`;
+                
+                console.log("Clearing existing map layers...");
+                if (gpxLayer) { // Clear previous layer if any
                     mymap.removeLayer(gpxLayer);
+                    gpxLayer = null; // Reset gpxLayer to null after removal
                 }
+
+                // Sprawdź, czy L.GPX jest zdefiniowane przed użyciem
+                if (typeof L.GPX === 'undefined') {
+                    console.error("L.GPX is not defined. leaflet-gpx.js might not have loaded correctly.");
+                    messageArea.textContent = "Błąd: Biblioteka Leaflet GPX nie została załadowana. Spróbuj ponownie lub sprawdź połączenie internetowe.";
+                    messageArea.classList.add('error-message');
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const gpxData = e.target.result;
+                    console.log("FileReader loaded GPX data. Attempting to display original track.");
+                    try {
+                        gpxLayer = new L.GPX(gpxData, {
+                            async: true,
+                            marker_options: {
+                                startIconUrl: false,
+                                endIconUrl: false,
+                                shadowUrl: false,
+                                wptIcons: {},
+                            },
+                            polyline_options: {
+                                color: 'blue',
+                                opacity: 0.75,
+                                weight: 5,
+                                lineCap: 'round'
+                            }
+                        }).on('loaded', function(gpxEvent) {
+                            console.log("Original GPX layer 'loaded' event fired.");
+                            const bounds = gpxEvent.target.getBounds();
+                            if (bounds.isValid()) {
+                                mymap.fitBounds(bounds);
+                                console.log("Map fitted to original GPX bounds.");
+                            } else {
+                                mymap.setView(exclusionPoint, 13);
+                                console.warn("Original GPX layer has invalid bounds. Map set to default view.");
+                            }
+                            messageArea.textContent = `Wczytano oryginalny plik: ${originalFileName}. Gotowy do przetwarzania.`;
+                            processGpxButton.disabled = false; // Enable process button
+                            messageArea.classList.remove('error-message');
+                        }).on('error', function(e) {
+                            console.error("Error loading original GPX layer:", e);
+                            messageArea.textContent = `Błąd podczas wyświetlania oryginalnej trasy: ${e.message || e}.`;
+                            messageArea.classList.add('error-message');
+                        }).addTo(mymap);
+                        console.log("Original GPX layer added to map.");
+                    } catch (error) {
+                        messageArea.textContent = `Błąd podczas wczytywania pliku GPX: ${error.message}`;
+                        console.error("Błąd wczytywania GPX (L.GPX constructor):", error);
+                        messageArea.classList.add('error-message');
+                    }
+                };
+
+                reader.onerror = function() {
+                    messageArea.textContent = 'Błąd odczytu pliku.';
+                    messageArea.classList.add('error-message');
+                    console.error("FileReader error.");
+                };
+
+                reader.readAsText(file);
             } else {
-                document.getElementById('message').textContent = 'Nie wybrano pliku.';
+                messageArea.textContent = 'Nie wybrano pliku.';
+                messageArea.classList.remove('error-message'); // Clear error if no file selected
+                processGpxButton.disabled = true; // Disable process button
+                console.log("No file selected.");
             }
         });
 
-        document.getElementById('processGpxButton').addEventListener('click', function() {
+        processGpxButton.addEventListener('click', function() {
             const fileInput = document.getElementById('gpxFileInput');
             const messageElement = document.getElementById('message');
             const file = fileInput.files[0];
