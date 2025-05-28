@@ -1,0 +1,595 @@
+                       <!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wizualizacja tras (z URL) FINAL</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-gpx@1.7.0/gpx.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
+
+        body {
+            font-family: 'PT Sans', Arial, sans-serif; /* Zmieniono czcionkę na PT Sans */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: transparent; /* Zmieniono tło na przezroczyste */
+            width: 90%; /* Przywrócono szerokość strony na 90% */
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #mapid {
+            height: 500px;
+            width: 90%; /* Zmieniono szerokość na 90% */
+            /* max-width: 900px; */ /* Zakomentowano max-width */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-top: 0; /* Zmieniono margines górny na 0, aby zminimalizować przerwę */
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #fff; /* Tło mapy przed załadowaniem */
+        }
+        .controls-container {
+            /* Now, this block will be hidden */
+            display: none; /* Ukrywa cały kontener z wiadomościami */
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .message-area {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        #gpxFoldersList { /* Style przeniesione z .folder-list-container */
+            width: 90%; /* Zmieniono szerokość na 90% */
+            /* max-width: 900px; */ /* Zakomentowano max-width */
+            margin-top: 10px; /* Zmieniono margines górny na 10px */
+            padding: 15px;
+            /* border: 1px solid #ccc; */ /* Zakomentowano obramowanie */
+            /* border-radius: 8px; */ /* Zakomentowano zaokrąglenie rogów */
+            background-color: transparent; /* Zmieniono tło na przezroczyste */
+            /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); */ /* Zakomentowano cień, jeśli niepotrzebny przy przezroczystym tle */
+        }
+
+        #gpxFoldersList ul {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+        #gpxFoldersList li {
+            padding: 8px 10px;
+            border-bottom: 1px dashed #eee;
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* Zapewnij zawijanie się tekstu na mniejszych ekranach */
+        }
+        #gpxFoldersList li:last-child {
+            border-bottom: none;
+        }
+        .color-square { /* Nowa klasa dla znacznika koloru */
+            margin-right: 10px; /* Dodaje odstęp 10px po prawej stronie znacznika koloru */
+        }
+        #gpxFoldersList .folder-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease;
+            margin-left: 5px; /* Dodany margines dla przycisku */
+            flex-shrink: 0; /* Zapobiegaj zmniejszaniu się przycisku */
+        }
+        #gpxFoldersList .folder-button:hover {
+            background-color: #0056b3;
+        }
+
+        .folder-info {
+            flex-grow: 1; /* Pozwól informacjom o folderze zająć dostępną przestrzeń */
+        }
+        .folder-stats {
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="controls-container">
+        <div id="message" class="message-area">Wczytywanie statystyk tras zdefiniowanych poniżej...</div>
+    </div>
+
+    <div id="gpxFoldersList">
+        </div>
+
+    <div id="mapid"></div>
+
+    <script>
+        var mymap = L.map('mapid').setView([51.9194, 19.1451], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.com/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mymap);
+
+        var currentGpxLayers = []; // Current GPX layers on map
+        var allFoundGpxFiles = {}; // Stores all found GPX file URLs, grouped by folder/source name
+        var folderColors = {}; // Stores a unique color for each folder/source
+        var folderAggregates = {}; // Stores aggregated distance, duration, and elevation gain for each folder/source
+
+        const messageArea = document.getElementById('message'); // messageArea still exists and is used by JS
+        const gpxFoldersList = document.getElementById('gpxFoldersList');
+
+        // === DEFINE YOUR GPX FILES HERE ===
+        // This object represents your "publicly accessible directories" or groups of GPX files.
+        // Replace these example URLs with your actual public GPX file URLs.
+        // Remember about CORS if files are on a different domain!
+        const remoteGpxSources = {
+            "Trasy Testowe": [
+                "https://raw.githubusercontent.com/BemolCN/MojeTrasy/main/pliki_GPX/Testy/Krakow%20-%20Suwa%C5%82ki.gpx",
+                "https://raw.githubusercontent.com/BemolCN/MojeTrasy/main/pliki_GPX/Testy/Stare%20Miasto%20-%20Pajeczno.gpx"
+            ],
+            "2025": [
+                "https://raw.githubusercontent.com/BemolCN/MojeTrasy/main/pliki_GPX/2025/2025-05-25_pierwszatrasa.gpx"
+            ]
+        };
+        // ===================================
+
+
+        // Usunięto funkcję getRandomColor() - kolory będą stałe
+
+        // Funkcja do formatowania czasu z milisekund na czytelny format (np. 1h 30m 5s)
+        function formatDuration(ms) {
+            if (ms === 0) return "0s";
+            const seconds = Math.floor(ms / 1000);
+            const hours = Math.floor((seconds % 3600) / 60);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+
+            let parts = [];
+            if (hours > 0) parts.push(`${hours}h`);
+            if (minutes > 0) parts.push(`${minutes}m`);
+            if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`); // Ensure at least seconds if nothing else
+
+            return parts.join(' ');
+        }
+
+        // Helper function to parse GPX XML and extract basic stats (distance, duration, elevation gain)
+        function parseGpxForStats(gpxXml) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(gpxXml, "text/xml");
+            const trackPoints = [];
+            let totalDurationMs = 0; // in milliseconds
+            let totalElevationGain = 0; // in meters
+
+            // Select all track points (<trkpt>) and route points (<rtept>)
+            const trkpts = xmlDoc.querySelectorAll('trkpt');
+            const rtepts = xmlDoc.querySelectorAll('rtept');
+
+            let prevElevation = null;
+            let prevTime = null;
+
+            // Prioritize track points for stats, then route points
+            const points = trkpts.length > 0 ? trkpts : rtepts;
+
+            points.forEach(pt => {
+                const lat = parseFloat(pt.getAttribute('lat'));
+                const lng = parseFloat(pt.getAttribute('lon'));
+                const eleElement = pt.querySelector('ele'); // Get elevation element
+                const timeElement = pt.querySelector('time');
+
+                let currentElevation = null;
+                if (eleElement && !isNaN(parseFloat(eleElement.textContent))) {
+                    currentElevation = parseFloat(eleElement.textContent);
+                }
+
+                let currentTime = null;
+                if (timeElement && timeElement.textContent) {
+                    currentTime = new Date(timeElement.textContent).getTime();
+                }
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    trackPoints.push(L.latLng(lat, lng));
+
+                    // Calculate elevation gain
+                    if (prevElevation !== null && currentElevation !== null) {
+                        const elevationDiff = currentElevation - prevElevation;
+                        if (elevationDiff > 0) { // Only sum positive differences for gain
+                            totalElevationGain += elevationDiff;
+                        }
+                    }
+                    prevElevation = currentElevation; // Update previous elevation for next point
+
+                    // Calculate duration
+                    if (prevTime !== null && currentTime !== null && !isNaN(currentTime) && !isNaN(prevTime)) {
+                        totalDurationMs += (currentTime - prevTime);
+                    }
+                    prevTime = currentTime; // Update previous time for next point
+                }
+            });
+
+            let totalDistanceMeters = 0;
+            if (trackPoints.length > 1) {
+                for (let i = 0; i < trackPoints.length - 1; i++) {
+                    totalDistanceMeters += trackPoints[i].distanceTo(trackPoints[i+1]);
+                }
+            }
+
+            return { distance: totalDistanceMeters, duration: totalDurationMs, elevationGain: totalElevationGain };
+        }
+
+        // Function to clear map
+        function clearMap() {
+            currentGpxLayers.forEach(layer => mymap.removeLayer(layer));
+            currentGpxLayers = [];
+        }
+
+        /**
+         * Loads GPX files for a given folder path (or source name) and displays them on the map.
+         * This function is called when the "Wczytaj" button is clicked for a specific group.
+         * @param {string} folderPath - The key for the folder in allFoundGpxFiles (which is a source name).
+         */
+        async function loadGpxFilesFromFolder(folderPath) {
+            clearMap();
+
+            const filesToLoad = allFoundGpxFiles[folderPath];
+            if (!filesToLoad || filesToLoad.length === 0) {
+                messageArea.innerText = `Brak plików GPX w grupie "${folderPath}".`;
+                return;
+            }
+
+            // Użyj stałego koloru przypisanego do folderColors
+            const trackColor = folderColors[folderPath];
+
+            messageArea.innerText = `Ładowanie tras z grupy "${folderPath}"...`;
+            let filesLoadedCount = 0;
+            const bounds = new L.LatLngBounds(); // Bounds for tracks in this specific folder
+            const loadingPromises = [];
+
+            for (const fileInfo of filesToLoad) { // fileInfo now contains 'url'
+                const loadPromise = fetch(fileInfo.url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status} for ${fileInfo.url}`);
+                        }
+                        return response.text();
+                    })
+                    .then(gpxData => {
+                        const gpxLayer = new L.GPX(gpxData, {
+                            async: true,
+                            marker_options: {
+                                startIconUrl: false,
+                                endIconUrl: false,
+                                shadowUrl: false,
+                                wptIcons: {},
+                            },
+                            polyline_options: {
+                                color: trackColor,
+                                opacity: 0.75,
+                                weight: 5,
+                                lineCap: 'round'
+                            }
+                        });
+
+                        // Return a promise that resolves when the GPX layer is loaded or errors
+                        return new Promise((resolve) => {
+                            gpxLayer.on('loaded', function(gpxEvent) {
+                                var gpx = gpxEvent.target;
+                                currentGpxLayers.push(gpxLayer);
+                                // We still extend bounds to calculate total distance for this specific folder,
+                                // but we won't use it to fit the map view in this function.
+                                if (gpx.getBounds().isValid()) {
+                                    bounds.extend(gpx.getBounds());
+                                } else {
+                                    console.warn(`Warstwa GPX dla ${fileInfo.url} ma nieprawidłowe granice.`);
+                                }
+                                gpxLayer.addTo(mymap);
+                                filesLoadedCount++; // Increment count here for successful load
+                                resolve();
+                            })
+                            .on('error', function(e) {
+                                console.error(`Błąd podczas ładowania pliku GPX z URL (${fileInfo.url}):`, e);
+                                resolve(); // Resolve even on error to allow Promise.allSettled to complete
+                            });
+                        });
+                    })
+                    .catch(e => {
+                        console.error(`Błąd pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
+                        return Promise.reject(e); // Propagate rejection for Promise.allSettled
+                    });
+                loadingPromises.push(loadPromise);
+            }
+
+            await Promise.allSettled(loadingPromises);
+
+            // Widok mapy pozostaje bez zmian po załadowaniu pojedynczej grupy.
+            if (filesLoadedCount > 0) {
+                const totalDist = (folderAggregates[folderPath].totalDistance / 1000).toFixed(2);
+                const totalDur = formatDuration(folderAggregates[folderPath].totalDuration);
+                const totalEleGain = folderAggregates[folderPath].totalElevationGain.toFixed(0);
+                messageArea.innerText = `Wczytano ${filesLoadedCount} tras z grupy "${folderPath}". Długość: ${totalDist} km, Czas: ${totalDur}, Przewyższenie: ${totalEleGain} m.`;
+            } else {
+                messageArea.innerText = `Nie wczytano żadnych tras z grupy "${folderPath}". Sprawdź adresy URL i ustawienia CORS.`;
+            }
+        }
+
+
+        /**
+         * Loads all GPX files from all defined remote sources simultaneously.
+         * This function is called on initial page load and by the "Wszystkie" group button.
+         */
+        async function loadAllGpxFiles() {
+            clearMap();
+
+            const allFilesToLoad = [];
+            for (const folderName in allFoundGpxFiles) {
+                // Skip the "Wszystkie" virtual folder if it exists in allFoundGpxFiles
+                if (folderName !== "Wszystkie") {
+                    allFilesToLoad.push(...allFoundGpxFiles[folderName]);
+                }
+            }
+
+            if (allFilesToLoad.length === 0) {
+                messageArea.innerText = 'Brak plików GPX do wczytania.';
+                return;
+            }
+
+            messageArea.innerText = `Ładowanie wszystkich tras (${allFilesToLoad.length} plików)...`;
+            let filesLoadedSuccessfullyCount = 0;
+            const bounds = new L.LatLngBounds(); // Re-initialize bounds for this specific load operation
+            const loadingPromises = [];
+
+            for (const fileInfo of allFilesToLoad) {
+                const loadPromise = fetch(fileInfo.url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status} for ${fileInfo.url}`);
+                        }
+                        return response.text();
+                    })
+                    .then(gpxData => {
+                        // Determine folder name for color assignment
+                        let folderName = 'Nieznana Grupa'; // Default
+                        for (const key in remoteGpxSources) { // Check only actual remote sources
+                            if (remoteGpxSources[key].includes(fileInfo.url)) {
+                                folderName = key;
+                                break;
+                            }
+                        }
+                        // Użyj stałego koloru przypisanego do folderColors
+                        const trackColor = folderColors[folderName];
+
+                        const gpxLayer = new L.GPX(gpxData, {
+                            async: true,
+                            marker_options: {
+                                startIconUrl: false,
+                                endIconUrl: false,
+                                shadowUrl: false,
+                                wptIcons: {},
+                            },
+                            polyline_options: {
+                                color: trackColor, // Użyj koloru przypisanego do katalogu
+                                opacity: 0.75,
+                                weight: 5,
+                                lineCap: 'round'
+                            }
+                        });
+
+                        // Return a promise that resolves when the GPX layer is loaded or errors
+                        return new Promise((resolve) => {
+                            gpxLayer.on('loaded', function(gpxEvent) {
+                                var gpx = gpxEvent.target;
+                                currentGpxLayers.push(gpxLayer);
+                                if (gpx.getBounds().isValid()) {
+                                    bounds.extend(gpx.getBounds());
+                                    filesLoadedSuccessfullyCount++;
+                                } else {
+                                    console.warn(`Warstwa GPX dla ${fileInfo.url} ma nieprawidłowe granice.`);
+                                }
+                                gpxLayer.addTo(mymap);
+                                resolve();
+                            })
+                            .on('error', function(e) {
+                                console.error(`Błąd podczas ładowania pliku GPX z URL (${fileInfo.url}):`, e);
+                                resolve(); // Resolve even on error to allow Promise.allSettled to complete
+                            });
+                        });
+                    })
+                    .catch(e => {
+                        console.error(`Błąd pobierania lub parsowania pliku GPX z URL (${fileInfo.url}):`, e);
+                        return Promise.reject(e); // Propagate rejection for Promise.allSettled
+                    });
+                loadingPromises.push(loadPromise);
+            }
+
+            // Wait for all promises to settle (either fulfilled or rejected)
+            const results = await Promise.allSettled(loadingPromises);
+            console.log('Wyniki Promise.allSettled:', results);
+
+            // Recalculate filesLoadedSuccessfullyCount based on fulfilled promises
+            filesLoadedSuccessfullyCount = results.filter(result => result.status === 'fulfilled' && result.value !== undefined).length;
+
+            console.log('Całkowita liczba plików do załadowania:', allFilesToLoad.length);
+            console.log('Liczba pomyślnie załadowanych plików (po allSettled):', filesLoadedSuccessfullyCount);
+            console.log('Granice po przetworzeniu wszystkich plików:', bounds, 'isValid:', bounds.isValid());
+
+            if (filesLoadedSuccessfullyCount > 0) {
+                if (bounds.isValid()) {
+                   mymap.fitBounds(bounds);
+                   console.log('Mapa dopasowana do granic.');
+                } else {
+                   console.warn('Granice są nieprawidłowe, nie można dopasować mapy.');
+                }
+                let totalDistanceAll = 0;
+                let totalDurationAll = 0;
+                let totalElevationGainAll = 0;
+                for (const folderName in folderAggregates) {
+                    if (folderName !== "Wszystkie") {
+                        totalDistanceAll += folderAggregates[folderName].totalDistance;
+                        totalDurationAll += folderAggregates[folderName].totalDuration;
+                        totalElevationGainAll += folderAggregates[folderName].totalElevationGain;
+                    }
+                }
+                messageArea.innerText = `Wczytano wszystkie ${filesLoadedSuccessfullyCount} tras. Sumaryczna długość: ${(totalDistanceAll / 1000).toFixed(2)} km, Sumaryczny czas: ${formatDuration(totalDurationAll)}, Sumaryczne przewyższenie: ${totalEleGainAll.toFixed(0)} m.`;
+
+            } else {
+                messageArea.innerText = `Nie wczytano żadnych tras. Sprawdź adresy URL i ustawienia CORS.`;
+            }
+        }
+
+
+        // Initialization logic for remote sources
+        async function initializeRemoteGpxSources() {
+            allFoundGpxFiles = {};
+            folderColors = {}; // Reset folderColors
+            folderAggregates = {};
+            gpxFoldersList.innerHTML = ''; // Usunięto początkowy tekst
+            messageArea.innerText = 'Wczytywanie statystyk tras zdefiniowanych poniżej...';
+
+            let gpxFoundInTotal = 0;
+            const backgroundParsingPromises = [];
+
+            // Przypisz stałe kolory do folderów
+            const fixedColors = {
+                "Trasy Testowe": "#0000FF", // Niebieski
+                "2025": "#008000" // Zielony
+                // Dodaj więcej stałych kolorów dla innych folderów, jeśli istnieją
+            };
+
+            // Populate allFoundGpxFiles and folderAggregates for individual remote sources
+            for (const folderName in remoteGpxSources) {
+                const urls = remoteGpxSources[folderName];
+                if (!allFoundGpxFiles[folderName]) {
+                    allFoundGpxFiles[folderName] = [];
+                    // Przypisz stały kolor, jeśli zdefiniowany, w przeciwnym razie domyślny czarny
+                    folderColors[folderName] = fixedColors[folderName] || "#000000";
+                    folderAggregates[folderName] = { totalDistance: 0, totalDuration: 0, totalElevationGain: 0 };
+                }
+
+                for (const url of urls) {
+                    const fileInfo = { url: url, distance: 0, duration: 0, elevationGain: 0 };
+                    allFoundGpxFiles[folderName].push(fileInfo);
+                    gpxFoundInTotal++;
+
+                    const parsePromise = fetch(url)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status} for ${url}`);
+                            }
+                            return response.text();
+                        })
+                        .then(gpxData => {
+                            const stats = parseGpxForStats(gpxData);
+                            fileInfo.distance = stats.distance;
+                            fileInfo.duration = stats.duration;
+                            fileInfo.elevationGain = stats.elevationGain;
+                            folderAggregates[folderName].totalDistance += stats.distance;
+                            folderAggregates[folderName].totalDuration += stats.duration;
+                            folderAggregates[folderName].totalElevationGain += stats.elevationGain;
+                        })
+                        .catch(err => {
+                            console.warn(`Błąd w tle podczas parsowania URL ${url}:`, err);
+                            fileInfo.distance = 0;
+                            fileInfo.duration = 0;
+                            fileInfo.elevationGain = 0;
+                        });
+                    backgroundParsingPromises.push(parsePromise);
+                }
+            }
+
+            await Promise.allSettled(backgroundParsingPromises); // Wait for all promises to settle
+
+            console.log('Agregacje folderów po parsowaniu w tle:', folderAggregates); // Log do konsoli
+
+            if (gpxFoundInTotal > 0) {
+                let folderListHtml = '<ul>';
+                const folderNames = Object.keys(allFoundGpxFiles).sort();
+
+                // Calculate total aggregates for the "Wszystkie" category
+                let totalDistanceAllCategories = 0;
+                let totalDurationAllCategories = 0;
+                let totalElevationGainAllCategories = 0;
+
+                for (const folderName of folderNames) {
+                    totalDistanceAllCategories += folderAggregates[folderName].totalDistance;
+                    totalDurationAllCategories += folderAggregates[folderName].totalDuration;
+                    totalElevationGainAllCategories += folderAggregates[folderName].totalElevationGain;
+                }
+
+                // Add "Wszystkie" as the first item in the list
+                const totalDistAll = (totalDistanceAllCategories / 1000).toFixed(2);
+                const totalDurAll = formatDuration(totalDurationAllCategories);
+                const totalEleGainAll = totalElevationGainAllCategories.toFixed(0);
+                const allFilesCount = gpxFoundInTotal; // Total files from all remote sources
+
+                folderListHtml += `
+                    <li>
+                        <span class="color-square" style="color:transparent; font-weight:bold;">&#9632;</span>
+                        <span class="folder-info">
+                            <strong>Wszystkie</strong> (${allFilesCount} plików GPX)
+                            <div class="folder-stats">Długość: ${totalDistAll} km, Czas: ${totalDurAll}, Przewyższenie: ${totalEleGainAll} m</div>
+                        </span>
+                        <button class="folder-button" onclick="loadAllGpxFiles()">Wczytaj</button>
+                    </li>
+                `;
+
+
+                folderNames.forEach(folderName => {
+                    const filesInFolder = allFoundGpxFiles[folderName];
+                    const fileCount = filesInFolder.length;
+                    const escapedFolderName = folderName.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/`/g, '\\`');
+                    const displayColor = folderColors[folderName]; // Pobierz stały kolor z folderColors
+                    const totalDist = (folderAggregates[folderName].totalDistance / 1000).toFixed(2);
+                    const totalDur = formatDuration(folderAggregates[folderName].totalDuration);
+                    const totalEleGain = folderAggregates[folderName].totalElevationGain.toFixed(0);
+
+                    folderListHtml += `
+                        <li>
+                            <span class="color-square" style="color:${displayColor}; font-weight:bold;">&#9632;</span>
+                            <span class="folder-info">
+                                ${folderName} (${fileCount} plików GPX)
+                                <div class="folder-stats">Długość: ${totalDist} km, Czas: ${totalDur}, Przewyższenie: ${totalEleGain} m</div>
+                            </span>
+                            <button class="folder-button" onclick="loadGpxFilesFromFolder('${escapedFolderName}')">Wczytaj</button>
+                        </li>
+                    `;
+                });
+                folderListHtml += '</ul>';
+                gpxFoldersList.innerHTML = folderListHtml;
+                messageArea.innerText = `Znaleziono ${gpxFoundInTotal} plików GPX w ${folderNames.length} grupach. Wybierz grupę do wczytania lub wczytaj wszystkie.`;
+
+                // Automatyczne wczytanie wszystkich tras po inicjalizacji
+                setTimeout(() => {
+                    loadAllGpxFiles();
+                }, 500); // Dodano opóźnienie 500ms
+            } else {
+                gpxFoldersList.innerHTML = '<p>Nie znaleziono plików GPX w zdefiniowanych źródłach URL.</p>';
+                messageArea.innerText = 'Nie znaleziono plików GPX w zdefiniowanych źródłach URL.';
+            }
+        }
+
+        // Initialize when the page loads
+        initializeRemoteGpxSources();
+    </script>
+</body>
+</html>
