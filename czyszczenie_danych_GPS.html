@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Czyszczenie danych GPX (jeden plik) FINAL</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.5.0/mammoth.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
+
+        body {
+            font-family: 'PT Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: transparent;
+            color: #333;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: calc(100% - 22px);
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        input[type="file"]:hover {
+            background-color: #e9e9e9;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message-area {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e9f7ef;
+            color: #28a745;
+            min-height: 20px; /* Ensure some height even if empty */
+            text-align: left;
+            word-wrap: break-word; /* Ensure long messages wrap */
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #mapid {
+            height: 500px;
+            width: 90%;
+            max-width: 800px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border: 1px solid #cce5ff;
+            border-radius: 8px;
+            text-align: left;
+            width: 90%;
+            max-width: 800px;
+        }
+        .info-panel p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Czyszczenie danych GPX (jeden plik) FINAL</h1>
+
+    <div class="container">
+        <label for="gpxFileInput">Wybierz plik GPX do wczytania:</label>
+        <input type="file" id="gpxFileInput" accept=".gpx">
+        <button id="processGpxButton">Usuń dane i pobierz oczyszczony plik</button>
+        <div id="message" class="message-area"></div>
+    </div>
+
+    <div class="info-panel">
+        <h3>Informacje o punkcie wykluczenia:</h3>
+        <p><strong>Lokalizacja:</strong> 50.092194, 19.935667 (Kraków)</p>
+        <p><strong>Promień wykluczenia:</strong> 2000 metrów (2 km)</p>
+        <p>Wszystkie punkty trasy znajdujące się w tym promieniu zostaną usunięte.</p>
+    </div>
+
+    <div id="mapid"></div>
+
+    <script>
+        var mymap = L.map('mapid').setView([50.092194, 19.935667], 13); // Centered on exclusion point
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.com/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mymap);
+
+        // Point to exclude (Kraków, N 50°05'31.9", E 19°56'08.4")
+        const EXCLUSION_LAT = 50.092194;
+        const EXCLUSION_LON = 19.935667;
+        const EXCLUSION_RADIUS_METERS = 2000; // 2 km
+
+        const exclusionPoint = L.latLng(EXCLUSION_LAT, EXCLUSION_LON);
+        let exclusionCircle = L.circle(exclusionPoint, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.2,
+            radius: EXCLUSION_RADIUS_METERS
+        }).addTo(mymap);
+
+        let gpxLayer = null;
+        let originalFileName = "cleaned_track.gpx";
+
+        document.getElementById('gpxFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                originalFileName = file.name.replace(/\.gpx$/i, '') + '_cleaned.gpx'; // Suggest new name
+                document.getElementById('message').textContent = `Plik "${file.name}" załadowany. Gotowy do czyszczenia.`;
+                // Clear previous layer if any
+                if (gpxLayer) {
+                    mymap.removeLayer(gpxLayer);
+                }
+            } else {
+                document.getElementById('message').textContent = 'Nie wybrano pliku.';
+            }
+        });
+
+        document.getElementById('processGpxButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('gpxFileInput');
+            const messageElement = document.getElementById('message');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                messageElement.textContent = 'Proszę wybrać plik GPX.';
+                messageElement.classList.add('error-message');
+                return;
+            }
+
+            messageElement.textContent = 'Przetwarzanie pliku...';
+            messageElement.classList.remove('error-message');
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const gpxData = e.target.result;
+                processGpx(gpxData, messageElement);
+            };
+
+            reader.onerror = function() {
+                messageElement.textContent = 'Błąd odczytu pliku.';
+                messageElement.classList.add('error-message');
+            };
+
+            reader.readAsText(file);
+        });
+
+        function processGpx(gpxData, messageElement) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(gpxData, "text/xml");
+
+            let totalPoints = 0;
+            let removedPoints = 0;
+
+            // Process track points
+            xmlDoc.querySelectorAll('trkpt').forEach(trkpt => {
+                totalPoints++;
+                const lat = parseFloat(trkpt.getAttribute('lat'));
+                const lon = parseFloat(trkpt.getAttribute('lon'));
+                const point = L.latLng(lat, lon);
+
+                if (exclusionPoint.distanceTo(point) <= EXCLUSION_RADIUS_METERS) {
+                    trkpt.parentNode.removeChild(trkpt);
+                    removedPoints++;
+                }
+            });
+
+            // Process route points (rtept)
+            xmlDoc.querySelectorAll('rtept').forEach(rtept => {
+                totalPoints++;
+                const lat = parseFloat(rtept.getAttribute('lat'));
+                const lon = parseFloat(rtept.getAttribute('lon'));
+                const point = L.latLng(lat, lon);
+
+                if (exclusionPoint.distanceTo(point) <= EXCLUSION_RADIUS_METERS) {
+                    rtept.parentNode.removeChild(rtept);
+                    removedPoints++;
+                }
+            });
+
+            // Process waypoint (wpt)
+            xmlDoc.querySelectorAll('wpt').forEach(wpt => {
+                totalPoints++;
+                const lat = parseFloat(wpt.getAttribute('lat'));
+                const lon = parseFloat(wpt.getAttribute('lon'));
+                const point = L.latLng(lat, lon);
+
+                if (exclusionPoint.distanceTo(point) <= EXCLUSION_RADIUS_METERS) {
+                    wpt.parentNode.removeChild(wpt);
+                    removedPoints++;
+                }
+            });
+
+            const serializer = new XMLSerializer();
+            const cleanedGpxData = serializer.serializeToString(xmlDoc);
+
+            // Display cleaned GPX on map
+            if (gpxLayer) {
+                mymap.removeLayer(gpxLayer);
+            }
+            gpxLayer = new L.GPX(cleanedGpxData, {
+                async: true,
+                marker_options: {
+                    startIconUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-icon-start.png',
+                    endIconUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-icon-end.png',
+                    shadowUrl: 'https://raw.githubusercontent.com/mpetrov/leaflet-gpx/master/pin-shadow.png',
+                },
+                polyline_options: {
+                    color: 'blue',
+                    opacity: 0.75,
+                    weight: 5,
+                    lineCap: 'round'
+                }
+            }).on('loaded', function() {
+                if (this.getBounds().isValid()) {
+                    mymap.fitBounds(this.getBounds());
+                } else {
+                    // If no valid bounds after cleaning, reset view to exclusion point
+                    mymap.setView(exclusionPoint, 13);
+                }
+            }).addTo(mymap);
+
+            messageElement.textContent = `Pomyślnie usunięto ${removedPoints} z ${totalPoints} punktów. Gotowy do pobrania.`;
+            messageElement.classList.remove('error-message');
+
+            // Trigger download
+            downloadGpxFile(cleanedGpxData);
+        }
+
+        function downloadGpxFile(data) {
+            const blob = new Blob([data], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = originalFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
