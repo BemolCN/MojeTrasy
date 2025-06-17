@@ -9,42 +9,6 @@
     <link href="https://play.google.com/store/apps/details?id=com.ilyabogdanovich.geotracker" />
     <time>2025-06-13T11:58:43Z</time>
   </metadata>
-  <wpt lat="49.86973244" lon="19.71101132">
-    <ele>382</ele>
-    <time>2025-06-13T12:53:47Z</time>
-    <name>Przystanek na ~5 min</name>
-    <desc>Wysokość: 382 m
-Czas od rozpoczęcia: 00:55:04
-Dystans od rozpoczęcia: 34,59 km</desc>
-    <extensions>
-      <geotracker:meta visited="1" />
-    </extensions>
-  </wpt>
-  <wpt lat="49.85374412" lon="19.69210611">
-    <ele>341</ele>
-    <time>2025-06-13T13:02:05Z</time>
-    <name>13 cze 2025 15:02:05</name>
-    <desc>Prędkość: 35 km/h
-Wysokość: 341 m
-Czas od rozpoczęcia: 01:02:22
-Dystans od rozpoczęcia: 37,34 km</desc>
-    <extensions>
-      <geotracker:meta visited="1" />
-    </extensions>
-  </wpt>
-  <wpt lat="49.85304189" lon="19.69268362">
-    <ele>342.6</ele>
-    <time>2025-06-13T13:02:15Z</time>
-    <name>kościół 
-</name>
-    <desc>Prędkość: 8,86 km/h
-Wysokość: 345 m
-Czas od rozpoczęcia: 01:02:32
-Dystans od rozpoczęcia: 37,43 km</desc>
-    <extensions>
-      <geotracker:meta visited="1" />
-    </extensions>
-  </wpt>
   <trk>
     <name>2025-06-13 Kr-Istebna-Cn</name>
     <src>Nagrane w Geo Trackerze na Android. Autor: Ilya Bogdanovich</src>
